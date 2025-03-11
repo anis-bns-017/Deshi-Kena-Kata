@@ -7,6 +7,7 @@ export const getProductController = async (req, res) => {
     const products = await Product.find();
     console.log("Fetched Products:", products); // ✅ Log output
 
+    
     res.json({
       message: "Products fetched successfully",
       data: products,

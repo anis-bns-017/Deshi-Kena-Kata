@@ -5,7 +5,6 @@ import "react-toastify/dist/ReactToastify.css";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ProductModal from "../components/ProductModal";
 
-
 const markets = [
   "Karwan Bazar (কারওয়ান বাজার)",
   "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
@@ -60,11 +59,12 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState({ field: "name", order: "asc" });
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMarket, setSelectedMarket] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1); // Track current page
-  const [productsPerPage] = useState(10); // Products per page
+  const [selectedDate, setSelectedDate] = useState(""); // State for date filter
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(10);
 
   const fetchProducts = async () => {
     try {
@@ -98,7 +98,7 @@ const Home = () => {
     fetchProducts();
   }, []);
 
-  // Filter products based on search query, category, and market
+  // Filter products based on search query, category, market, and date
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
       .toLowerCase()
@@ -107,17 +107,29 @@ const Home = () => {
       selectedCategory === "all" || product.category === selectedCategory;
     const matchesMarket =
       selectedMarket === "all" || product.market === selectedMarket;
-    return matchesSearch && matchesCategory && matchesMarket;
+
+    // Date filtering logic
+    const matchesDate =
+      !selectedDate ||
+      new Date(product.createdAt).toISOString().split("T")[0] === selectedDate;
+
+    return matchesSearch && matchesCategory && matchesMarket && matchesDate;
   });
 
-  // Sort products based on the selected option
+  // Sort products based on the selected field and order
   const sortedProducts = filteredProducts.sort((a, b) => {
-    if (sortBy === "price") {
-      return a.price - b.price;
-    } else if (sortBy === "quantity") {
-      return a.quantity - b.quantity;
+    const { field, order } = sortBy;
+
+    if (field === "price") {
+      return order === "asc" ? a.price - b.price : b.price - a.price;
+    } else if (field === "quantity") {
+      return order === "asc"
+        ? a.quantity - b.quantity
+        : b.quantity - a.quantity;
     } else {
-      return a.name.localeCompare(b.name);
+      return order === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name);
     }
   });
 
@@ -181,14 +193,29 @@ const Home = () => {
           ))}
         </select>
 
+        {/* Date Filter */}
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* Sort Dropdown */}
         <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+          value={`${sortBy.field}-${sortBy.order}`}
+          onChange={(e) => {
+            const [field, order] = e.target.value.split("-");
+            setSortBy({ field, order });
+          }}
           className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="name">Sort by Name</option>
-          <option value="price">Sort by Price</option>
-          <option value="quantity">Sort by Quantity</option>
+          <option value="name-asc">Sort by Name (A-Z)</option>
+          <option value="name-desc">Sort by Name (Z-A)</option>
+          <option value="price-asc">Sort by Price (Low to High)</option>
+          <option value="price-desc">Sort by Price (High to Low)</option>
+          <option value="quantity-asc">Sort by Quantity (Low to High)</option>
+          <option value="quantity-desc">Sort by Quantity (High to Low)</option>
         </select>
       </div>
 
@@ -215,6 +242,10 @@ const Home = () => {
                 <p className="text-gray-700">Market: {product.market}</p>
                 <p className="text-gray-700">Category: {product.category}</p>
                 <p className="text-gray-600 text-sm">{product.description}</p>
+                <p className="text-gray-600 text-sm">
+                  Date: {new Date(product.createdAt).toLocaleDateString()}
+                </p>{" "}
+                {/* Display product date */}
                 <div className="mt-4">
                   <span className="font-medium">Images:</span>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -224,7 +255,7 @@ const Home = () => {
                         src={image}
                         alt={`Product ${index + 1}`}
                         className="w-20 h-20 object-cover rounded border border-gray-300"
-                        loading="lazy" // Lazy loading for images
+                        loading="lazy"
                       />
                     ))}
                   </div>
