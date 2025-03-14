@@ -33,7 +33,7 @@ app.use("/api", router); // All product routes will be prefixed with /api
  
 
 // Start the server
-const PORT = 5001;
+const PORT = 5002;
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });

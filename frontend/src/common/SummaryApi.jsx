@@ -1,4 +1,4 @@
-const backendDomain = "http://localhost:5001";
+const backendDomain = "http://localhost:5002";
 
 const SummaryApi = {
   getProducts: {

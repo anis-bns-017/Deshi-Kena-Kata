@@ -1,0 +1,188 @@
+[
+  {
+    "name": "Potato (আলু)",
+    "price": 8,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Potato (আলু)",
+    "price": 22,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Potato (আলু)",
+    "price": 20,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Potato (আলু)",
+    "price": 23,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Potato (আলু)",
+    "price": 40,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Potato (আলু)",
+    "price": 22,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "01/01/2025"
+  },
+  {
+    "name": "Tomato (টমেটো)",
+    "price": 90,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "02/01/2025"
+  },
+  {
+    "name": "Tomato (টমেটো)",
+    "price": 122,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "02/01/2025"
+  },
+  {
+    "name": "Tomato (টমেটো)",
+    "price": 100,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "02/01/2025"
+  },
+  {
+    "name": "Tomato (টমেটো)",
+    "price": 222,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "02/01/2025"
+  },
+  {
+    "name": "Tomato (টমেটো)",
+    "price": 60,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "02/01/2025"
+  },
+  {
+    "name": "Onion (পেঁয়াজ)",
+    "price": 45,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "03/01/2025"
+  },
+  {
+    "name": "Onion (পেঁয়াজ)",
+    "price": 48,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "03/01/2025"
+  },
+  {
+    "name": "Onion (পেঁয়াজ)",
+    "price": 50,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "03/01/2025"
+  },
+  {
+    "name": "Onion (পেঁয়াজ)",
+    "price": 46,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "03/01/2025"
+  },
+  {
+    "name": "Onion (পেঁয়াজ)",
+    "price": 47,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "03/01/2025"
+  },
+  {
+    "name": "Brinjal (বেগুন)",
+    "price": 35,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "04/01/2025"
+  },
+  {
+    "name": "Brinjal (বেগুন)",
+    "price": 38,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "04/01/2025"
+  },
+  {
+    "name": "Brinjal (বেগুন)",
+    "price": 36,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "04/01/2025"
+  },
+  {
+    "name": "Brinjal (বেগুন)",
+    "price": 37,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "04/01/2025"
+  },
+  {
+    "name": "Brinjal (বেগুন)",
+    "price": 34,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "04/01/2025"
+  },
+  {
+    "name": "Carrot (গাজর)",
+    "price": 25,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "05/01/2025"
+  },
+  {
+    "name": "Carrot (গাজর)",
+    "price": 27,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "05/01/2025"
+  },
+  {
+    "name": "Carrot (গাজর)",
+    "price": 24,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "05/01/2025"
+  },
+  {
+    "name": "Carrot (গাজর)",
+    "price": 26,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "05/01/2025"
+  },
+  {
+    "name": "Carrot (গাজর)",
+    "price": 23,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "05/01/2025"
+  },
+  {
+    "name": "Cucumber (শসা)",
+    "price": 28,
+    "market": "Karwan Bazar (কাওরান বাজার)",
+    "date": "06/01/2025"
+  },
+  {
+    "name": "Cucumber (শসা)",
+    "price": 30,
+    "market": "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
+    "date": "06/01/2025"
+  },
+  {
+    "name": "Cucumber (শসা)",
+    "price": 29,
+    "market": "New Market (নিউ মার্কেট)",
+    "date": "06/01/2025"
+  },
+  {
+    "name": "Cucumber (শসা)",
+    "price": 31,
+    "market": "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
+    "date": "06/01/2025"
+  },
+  {
+    "name": "Cucumber (শসা)",
+    "price": 27,
+    "market": "Shantinagar Bazar (শান্তিনগর বাজার)",
+    "date": "06/01/2025"
+  }
+]

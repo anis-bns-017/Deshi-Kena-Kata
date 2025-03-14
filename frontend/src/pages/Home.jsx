@@ -176,8 +176,8 @@ const Home = () => {
           className="p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Categories</option>
-          <option value="Category X">Category X</option>
-          <option value="Category Y">Category Y</option>
+          <option value="Vegetable">Vegetable</option>
+          <option value="Fruit">Fruit</option>
         </select>
 
         <select
