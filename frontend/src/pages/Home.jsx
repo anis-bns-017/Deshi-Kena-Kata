@@ -98,6 +98,9 @@ const Home = () => {
     fetchProducts();
   }, []);
 
+  console.log("Here is the productList: ", products);
+  
+
   // Filter products based on search query, category, market, and date
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -23,70 +23,64 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import data from "./data.json"; // Importing JSON data
+import { toast } from "react-toastify";
+import SummaryApi from "../common/SummaryApi";
+import { formatISODate, generateAllMonths } from "../helpers/utils";
 
 const ProductVisualization = () => {
-  const [selectedProduct, setSelectedProduct] = useState(data[0]?.name || "");
   const [selectedMarket, setSelectedMarket] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [data, setData] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("singleDate"); // 'singleDate' or 'monthly'
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(SummaryApi.getProducts.url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Received non-JSON response");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setData(data.data);
+        toast.success("Products loaded successfully! 🎉");
+      } else {
+        toast.error(`Failed to fetch products: ${data.message}`);
+      }
+    } catch (error) {
+      toast.error(`Error fetching products: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    console.log("Fetched Data:", data); // Log the fetched data
+  }, [data]);
+
+  const [selectedProduct, setSelectedProduct] = useState(data[0]?.name || "");
 
   // Extract unique product names
   const uniqueProducts = [...new Set(data.map((item) => item.name))];
 
   // Extract unique markets
-  const uniqueMarkets = [
-    "Karwan Bazar (কারওয়ান বাজার)",
-    "Jatrabari Bazar (যাত্রাবাড়ী বাজার)",
-    "Shyambazar (শ্যামবাজার)",
-    "Mirpur 1 Vegetable Market (মিরপুর ১ বাজার)",
-    "Gabtoli Bazar (গাবতলী বাজার)",
-    "Mohammadpur Krishi Market (মোহাম্মদপুর কৃষি বাজার)",
-    "Khatunganj Bazar (খাতুনগঞ্জ বাজার)",
-    "Reazuddin Bazar (রিয়াজউদ্দিন বাজার)",
-    "Bohoddarhat Bazar (বহদ্দারহাট বাজার)",
-    "Bandar Bazar (সিলেট বন্দর বাজার)",
-    "Shaheb Bazar (সাহেব বাজার)",
-    "Port Road Market (পোর্ট রোড বাজার)",
-    "Khulna Boro Bazar (খুলনা বড় বাজার)",
-    "Cumilla Tomcham Bridge Bazar (কুমিল্লা টমছম ব্রিজ বাজার)",
-    "Noakhali Maijdee Bazar (নোয়াখালী মাইজদী বাজার)",
-    "Bogura Sathmatha Bazar (বগুড়া সাতমাথা বাজার)",
-    "Notun Bazar, Badda (নতুন বাজার, বাড্ডা)",
-    "Mohakhali Kacha Bazar (মহাখালী কাঁচাবাজার)",
-    "Reazuddin Bazar, Chattogram (রেয়াজুদ্দিন বাজার, চট্টগ্রাম)",
-    "Teknaf Bazar, Teknaf (টেকনাফ বাজার, টেকনাফ)",
-    "Chawkbazar, Chattogram (চকবাজার, চট্টগ্রাম)",
-    "Daulatpur Bazar, Khulna (দৌলতপুর বাজার, খুলনা)",
-    "Notun Bazar, Khulna (নতুন বাজার, খুলনা)",
-    "Sat Rasta Bazar, Khulna (সাত রাস্তা বাজার, খুলনা)",
-    "Baneshwar Bazar, Puthia (বানেশ্বর বাজার, পুঠিয়া)",
-    "Upashahar Bazar, Rajshahi (উপশহর বাজার, রাজশাহী)",
-    "New Market, Rajshahi (নিউ মার্কেট, রাজশাহী)",
-    "Kalighat Bazar, Sylhet (কালীঘাট বাজার, সিলেট)",
-    "Ambarkhana Bazar, Sylhet (আম্বরখানা বাজার, সিলেট)",
-    "Notun Bazar, Sylhet (নতুন বাজার, সিলেট)",
-    "Notun Bazar, Barishal (নতুন বাজার, বরিশাল)",
-    "Kaunia Bazar, Barishal (কাউনিয়া বাজার, বরিশাল)",
-    "Chawkbazar, Barishal (চকবাজার, বরিশাল)",
-    "New Market, Rangpur (নিউ মার্কেট, রংপুর)",
-    "jahaj kompani mor bazar, Rangpur (জাহাজ কোম্পানি মোড় বাজার, রংপুর)",
-    "Lalbag Bazar, Dinajpur (লালবাগ বাজার, দিনাজপুর)",
-    "Mechua Bazar, Mymensingh (মেছুয়া বাজার, ময়মনসিংহ)",
-    "Notun Bazar, Mymensingh (নতুন বাজার, ময়মনসিংহ)",
-    "Boro Bazar, Jamalpur (বড় বাজার, জামালপুর)",
-    "Railway Bazar, Netrokona (রেলওয়ে বাজার, নেত্রকোনা)",
-    "Rajganj Bazar, Cumilla (রাজগঞ্জ বাজার, কুমিল্লা)",
-    "Shashongacha Bazar, Cumilla (শাসনগাছা বাজার, কুমিল্লা)",
-    "New Market, Cumilla (নিউ মার্কেট, কুমিল্লা)",
-    "Choumuhani Bazar, Begumganj (চৌমুহনী বাজার, বেগমগঞ্জ)",
-    "Sonapur Bazar, Noakhali Sadar (সোনাপুর বাজার, নোয়াখালী সদর)",
-    "Datterhat Bazar, Senbag (দত্তেরহাট বাজার, সেনবাগ)",
-  ];
+  const uniqueMarkets = [...new Set(data.map((item) => item.market))];
 
   // Generate all months (e.g., "January 2025", "February 2025", etc.)
-  const allMonths = [];
+  const allMonths = generateAllMonths(2025, 2025);
   const startYear = 2025; // Adjust based on your data
   const endYear = 2025; // Adjust based on your data
   for (let year = startYear; year <= endYear; year++) {
@@ -99,62 +93,77 @@ const ProductVisualization = () => {
     }
   }
 
-  // Convert date from `dd/mm/yyyy` to `yyyy-mm-dd`
-  const convertDate = (date) => {
-    if (!date) return "";
-    const [day, month, year] = date.split("/");
-    return `${year}-${month}-${day}`;
+  // Convert ISO date to `yyyy-mm-dd` format
+  const formatISODate = (isoDate) => {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    return date.toISOString().split("T")[0]; // Extracts `yyyy-mm-dd`
   };
 
   // Filter data based on selected product, market, and date/month
-  const filteredData = data.filter((item) => {
-    const [day, month, year] = item.date.split("/");
-    const itemMonth = new Date(`${year}-${month}-01`).toLocaleString(
-      "default",
-      {
-        month: "long",
-        year: "numeric",
+  // const filteredData =
+
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      if (!item.createdAt) return false; // Skip if date is undefined or null
+
+      const itemDate = formatISODate(item.createdAt); // `yyyy-mm-dd`
+
+      if (viewMode === "singleDate") {
+        return item.name === selectedProduct && itemDate === selectedDate;
+      } else if (viewMode === "monthly") {
+        const itemMonth = new Date(item.createdAt).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        });
+        return (
+          item.name === selectedProduct &&
+          item.market === selectedMarket &&
+          itemMonth === selectedMonth
+        );
       }
-    );
+      return false;
+    });
+  }, [data, selectedProduct, selectedMarket, selectedDate, selectedMonth]);
 
-    if (viewMode === "singleDate") {
-      return (
-        item.name === selectedProduct &&
-        convertDate(item.date) === selectedDate
-      );
-    } else if (viewMode === "monthly") {
-      return item.name === selectedProduct && item.market === selectedMarket && itemMonth === selectedMonth;
-    }
-    return false;
-  });
-
-  // Check if there's data for the selected month
   const hasDataForSelectedMonth = data.some((item) => {
-    const [day, month, year] = item.date.split("/");
-    const itemMonth = new Date(`${year}-${month}-01`).toLocaleString(
-      "default",
-      {
-        month: "long",
-        year: "numeric",
-      }
-    );
+    if (!item.createdAt) return false; // Skip if date is undefined or null
+
+    const itemMonth = new Date(item.createdAt).toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
     return itemMonth === selectedMonth && item.name === selectedProduct;
   });
+
+  const handleClearFilters = () => {
+    setSelectedProduct("");
+    setSelectedMarket("");
+    setSelectedDate("");
+    setSelectedMonth("");
+  };
 
   // Custom Tooltip for Market Info
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-2 border rounded shadow-md">
-          <p className="text-sm font-semibold">
-            Market: {payload[0].payload.market}
-          </p>
+          <p className="text-sm font-semibold">{payload[0].payload.name}</p>
+          <p className="text-sm">Market: {payload[0].payload.market}</p>
           <p className="text-sm text-blue-500">Price: {payload[0].value} Tk</p>
+          <p className="text-sm">Quantity: {payload[0].payload.quantity} kg</p>
         </div>
       );
     }
     return null;
   };
+
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      fetchProducts();
+    }, 300); // 300ms delay
+    return () => clearTimeout(debounceTimer);
+  }, [selectedMarket, selectedDate, selectedMonth]);
 
   return (
     <div className="p-6">
@@ -241,13 +250,22 @@ const ProductVisualization = () => {
                 </option>
               ))}
             </select>
+
             {selectedMonth && !hasDataForSelectedMonth && (
               <div className="text-red-500 font-semibold">
-                No data available for {selectedProduct} in {selectedMonth} in the {selectedMarket} market.
+                No data available for {selectedProduct} in {selectedMonth} in
+                the {selectedMarket} market.
               </div>
             )}
           </>
         )}
+
+        <button
+          onClick={handleClearFilters}
+          className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
+        >
+          Clear Filters
+        </button>
       </div>
 
       {/* Show Message if No Data */}
