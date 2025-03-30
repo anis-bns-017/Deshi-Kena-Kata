@@ -14,6 +14,9 @@ export const formatISODate = (isoDate) => {
         });
         allMonths.push(monthName);
       }
+      console.log(allMonths);
+      
     }
+   
     return allMonths;
   };

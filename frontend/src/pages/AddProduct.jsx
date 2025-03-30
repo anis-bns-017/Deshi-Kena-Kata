@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import uploadImage from "../helpers/uploadImage";
-import { toast } from "react-toastify";
+ 
 import "react-toastify/dist/ReactToastify.css";
 import SummaryApi from "../common/SummaryApi";
 import Swal from "sweetalert2";

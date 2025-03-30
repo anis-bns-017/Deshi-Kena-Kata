@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import html2canvas from "html2canvas";
 import {
-  BarChart,
+  BarChart,                                                                                                 
   Bar,
   LineChart,
   Line,
@@ -13,7 +14,7 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  ScatterChart,
+  ScatterChart,             
   Scatter,
   XAxis,
   YAxis,
@@ -34,7 +35,11 @@ const ProductVisualization = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("singleDate"); // 'singleDate' or 'monthly'
+  const [priceRange, setPriceRange] = useState([0, 10000]); // Price range filter
+  const [quantityRange, setQuantityRange] = useState([0, 10000]); // Quantity range filter
+  const [darkMode, setDarkMode] = useState(false); // Dark mode toggle
 
+  // Fetch products from the API
   const fetchProducts = async () => {
     try {
       const response = await fetch(SummaryApi.getProducts.url);
@@ -67,10 +72,6 @@ const ProductVisualization = () => {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    console.log("Fetched Data:", data); // Log the fetched data
-  }, [data]);
-
   const [selectedProduct, setSelectedProduct] = useState(data[0]?.name || "");
 
   // Extract unique product names
@@ -81,36 +82,25 @@ const ProductVisualization = () => {
 
   // Generate all months (e.g., "January 2025", "February 2025", etc.)
   const allMonths = generateAllMonths(2025, 2025);
-  const startYear = 2025; // Adjust based on your data
-  const endYear = 2025; // Adjust based on your data
-  for (let year = startYear; year <= endYear; year++) {
-    for (let month = 1; month <= 12; month++) {
-      const monthName = new Date(`${year}-${month}-01`).toLocaleString(
-        "default",
-        { month: "long", year: "numeric" }
-      );
-      allMonths.push(monthName);
-    }
-  }
 
-  // Convert ISO date to `yyyy-mm-dd` format
-  const formatISODate = (isoDate) => {
-    if (!isoDate) return "";
-    const date = new Date(isoDate);
-    return date.toISOString().split("T")[0]; // Extracts `yyyy-mm-dd`
-  };
-
-  // Filter data based on selected product, market, and date/month
-  // const filteredData =
-
+  // Filter data based on selected product, market, date/month, price, and quantity
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       if (!item.createdAt) return false; // Skip if date is undefined or null
 
       const itemDate = formatISODate(item.createdAt); // `yyyy-mm-dd`
+      const matchesPrice =
+        item.price >= priceRange[0] && item.price <= priceRange[1];
+      const matchesQuantity =
+        item.quantity >= quantityRange[0] && item.quantity <= quantityRange[1];
 
       if (viewMode === "singleDate") {
-        return item.name === selectedProduct && itemDate === selectedDate;
+        return (
+          item.name === selectedProduct &&
+          itemDate === selectedDate &&
+          matchesPrice &&
+          matchesQuantity
+        );
       } else if (viewMode === "monthly") {
         const itemMonth = new Date(item.createdAt).toLocaleString("default", {
           month: "long",
@@ -119,12 +109,22 @@ const ProductVisualization = () => {
         return (
           item.name === selectedProduct &&
           item.market === selectedMarket &&
-          itemMonth === selectedMonth
+          itemMonth === selectedMonth &&
+          matchesPrice &&
+          matchesQuantity
         );
       }
       return false;
     });
-  }, [data, selectedProduct, selectedMarket, selectedDate, selectedMonth]);
+  }, [
+    data,
+    selectedProduct,
+    selectedMarket,
+    selectedDate,
+    selectedMonth,
+    priceRange,
+    quantityRange,
+  ]);
 
   const hasDataForSelectedMonth = data.some((item) => {
     if (!item.createdAt) return false; // Skip if date is undefined or null
@@ -136,139 +136,344 @@ const ProductVisualization = () => {
     return itemMonth === selectedMonth && item.name === selectedProduct;
   });
 
+  // Clear all filters
   const handleClearFilters = () => {
     setSelectedProduct("");
     setSelectedMarket("");
     setSelectedDate("");
     setSelectedMonth("");
+    setPriceRange([0, 10000]);
+    setQuantityRange([0, 10000]);
+  };
+
+  // Export chart as an image
+  const chartRef = useRef(null);
+
+  const handleExportChart = () => {
+    if (chartRef.current) {
+      const chartElement = chartRef.current.container;
+      if (chartElement) {
+        const svgElement = chartElement.querySelector("svg");
+        if (svgElement) {
+          const svgData = new XMLSerializer().serializeToString(svgElement);
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          // Set canvas dimensions
+          canvas.width = svgElement.clientWidth;
+          canvas.height = svgElement.clientHeight;
+
+          // Create an image from the SVG data
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = "chart.png";
+            link.click();
+          };
+          img.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
+        } else {
+          toast.error("SVG element not found!");
+        }
+      } else {
+        toast.error("Chart container not found!");
+      }
+    }
   };
 
   // Custom Tooltip for Market Info
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border rounded shadow-md">
-          <p className="text-sm font-semibold">{payload[0].payload.name}</p>
-          <p className="text-sm">Market: {payload[0].payload.market}</p>
-          <p className="text-sm text-blue-500">Price: {payload[0].value} Tk</p>
-          <p className="text-sm">Quantity: {payload[0].payload.quantity} kg</p>
+        <div
+          className={`p-4 rounded-lg shadow-lg ${
+            darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+          }`}
+        >
+          <p className="font-semibold">{payload[0].payload.name}</p>
+          <p>Market: {payload[0].payload.market}</p>
+          <p className="text-blue-500">Price: {payload[0].value} Tk</p>
+          <p>Quantity: {payload[0].payload.quantity} kg</p>
         </div>
       );
     }
     return null;
   };
 
+  // Toggle dark mode
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchProducts();
-    }, 300); // 300ms delay
-    return () => clearTimeout(debounceTimer);
-  }, [selectedMarket, selectedDate, selectedMonth]);
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">
-        Graphical View of Product Prices
-      </h2>
+    <div
+      className={`p-6 min-h-screen ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
+      {/* Dark Mode Toggle */}
+      <button
+        onClick={() => setDarkMode(!darkMode)}
+        className="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-600 transition"
+      >
+        {darkMode ? "🌞 Light Mode" : "🌙 Dark Mode"}
+      </button>
 
-      {/* Filters */}
-      <div className="flex gap-4 mb-4 flex-wrap">
-        {/* Product Filter */}
-        <select
-          className="border p-2"
-          onChange={(e) => setSelectedProduct(e.target.value)}
-          value={selectedProduct}
-        >
-          <option value="">Select Product</option>
-          {uniqueProducts.map((product, index) => (
-            <option key={index} value={product}>
-              {product}
-            </option>
-          ))}
-        </select>
-
-        {/* View Mode Radio Buttons */}
-        <div className="flex gap-4 items-center">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="viewMode"
-              value="singleDate"
-              checked={viewMode === "singleDate"}
-              onChange={() => setViewMode("singleDate")}
-            />
-            Single Date
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="viewMode"
-              value="monthly"
-              checked={viewMode === "monthly"}
-              onChange={() => setViewMode("monthly")}
-            />
-            Monthly
-          </label>
-        </div>
-
-        {/* Single Date Filter */}
-        {viewMode === "singleDate" && (
-          <>
-            <input
-              type="date"
-              className="border p-2"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </>
-        )}
-
-        {/* Monthly Filter */}
-        {viewMode === "monthly" && (
-          <>
-            <select
-              className="border p-2"
-              onChange={(e) => setSelectedMarket(e.target.value)}
-              value={selectedMarket}
-            >
-              <option value="">Select Market</option>
-              {uniqueMarkets.map((market, index) => (
-                <option key={index} value={market}>
-                  {market}
-                </option>
-              ))}
-            </select>
-            <select
-              className="border p-2"
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              value={selectedMonth}
-            >
-              <option value="">Select Month</option>
-              {allMonths.map((month, index) => (
-                <option key={index} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-
-            {selectedMonth && !hasDataForSelectedMonth && (
-              <div className="text-red-500 font-semibold">
-                No data available for {selectedProduct} in {selectedMonth} in
-                the {selectedMarket} market.
-              </div>
-            )}
-          </>
-        )}
-
-        <button
-          onClick={handleClearFilters}
-          className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
-        >
-          Clear Filters
-        </button>
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-blue-600">
+          Product Visualization
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Analyze product prices across markets and time periods.
+        </p>
       </div>
 
-      {/* Show Message if No Data */}
+      {/* Filters */}
+      <div
+        className={`p-6 rounded-lg shadow-md mb-6 ${
+          darkMode ? "bg-gray-800" : "bg-white"
+        }`}
+      >
+        <h2 className="text-xl font-semibold mb-4">Filters</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Product Filter */}
+          <div>
+            <label
+              className={`block text-sm font-medium ${
+                darkMode ? "text-gray-300" : "text-gray-700"
+              } mb-1`}
+            >
+              Product
+            </label>
+            <select
+              className={`w-full p-2 border rounded-lg ${
+                darkMode
+                  ? "bg-gray-700 text-white border-gray-600"
+                  : "bg-gray-50 text-gray-900 border-gray-300"
+              }`}
+              onChange={(e) => setSelectedProduct(e.target.value)}
+              value={selectedProduct}
+            >
+              <option value="">Select Product</option>
+              {uniqueProducts.map((product, index) => (
+                <option key={index} value={product}>
+                  {product}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* View Mode */}
+          <div>
+            <label
+              className={`block text-sm font-medium ${
+                darkMode ? "text-gray-300" : "text-gray-700"
+              } mb-1`}
+            >
+              View Mode
+            </label>
+            <div className="flex gap-2">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="viewMode"
+                  value="singleDate"
+                  checked={viewMode === "singleDate"}
+                  onChange={() => setViewMode("singleDate")}
+                />
+                Single Date
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="viewMode"
+                  value="monthly"
+                  checked={viewMode === "monthly"}
+                  onChange={() => setViewMode("monthly")}
+                />
+                Monthly
+              </label>
+            </div>
+          </div>
+
+          {/* Date Filter */}
+          {viewMode === "singleDate" && (
+            <div>
+              <label
+                className={`block text-sm font-medium ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } mb-1`}
+              >
+                Date
+              </label>
+              <input
+                type="date"
+                className={`w-full p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Market Filter */}
+          {viewMode === "monthly" && (
+            <div>
+              <label
+                className={`block text-sm font-medium ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } mb-1`}
+              >
+                Market
+              </label>
+              <select
+                className={`w-full p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+                onChange={(e) => setSelectedMarket(e.target.value)}
+                value={selectedMarket}
+              >
+                <option value="">Select Market</option>
+                {uniqueMarkets.map((market, index) => (
+                  <option key={index} value={market}>
+                    {market}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Month Filter */}
+          {viewMode === "monthly" && (
+            <div>
+              <label
+                className={`block text-sm font-medium ${
+                  darkMode ? "text-gray-300" : "text-gray-700"
+                } mb-1`}
+              >
+                Month
+              </label>
+              <select
+                className={`w-full p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                value={selectedMonth}
+              >
+                <option value="">Select Month</option>
+                {allMonths.map((month, index) => (
+                  <option key={index} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Price Range Filter */}
+          <div>
+            <label
+              className={`block text-sm font-medium ${
+                darkMode ? "text-gray-300" : "text-gray-700"
+              } mb-1`}
+            >
+              Price Range (BDT)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Min"
+                value={priceRange[0]}
+                onChange={(e) => setPriceRange([e.target.value, priceRange[1]])}
+                className={`w-1/2 p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                value={priceRange[1]}
+                onChange={(e) => setPriceRange([priceRange[0], e.target.value])}
+                className={`w-1/2 p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Quantity Range Filter */}
+          <div>
+            <label
+              className={`block text-sm font-medium ${
+                darkMode ? "text-gray-300" : "text-gray-700"
+              } mb-1`}
+            >
+              Quantity Range (kg)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Min"
+                value={quantityRange[0]}
+                onChange={(e) =>
+                  setQuantityRange([e.target.value, quantityRange[1]])
+                }
+                className={`w-1/2 p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                value={quantityRange[1]}
+                onChange={(e) =>
+                  setQuantityRange([quantityRange[0], e.target.value])
+                }
+                className={`w-1/2 p-2 border rounded-lg ${
+                  darkMode
+                    ? "bg-gray-700 text-white border-gray-600"
+                    : "bg-gray-50 text-gray-900 border-gray-300"
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div className="sm:col-span-2 lg:col-span-4">
+            <button
+              onClick={handleClearFilters}
+              className={`w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-red-500 hover:bg-red-600"
+              } text-white transition`}
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
       {filteredData.length === 0 ? (
         <div className="text-center text-red-500 font-semibold">
           No data available for {selectedProduct} in{" "}
@@ -278,15 +483,26 @@ const ProductVisualization = () => {
           .
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Bar Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Bar Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="barChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Bar Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <BarChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="market" />
-                <YAxis />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={darkMode ? "#4A5568" : "#E2E8F0"}
+                />
+                <XAxis
+                  dataKey="market"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
+                <YAxis stroke={darkMode ? "#CBD5E0" : "#4A5568"} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Bar
@@ -321,16 +537,37 @@ const ProductVisualization = () => {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("barChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
 
           {/* Line Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Line Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="lineChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Line Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <LineChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="market" />
-                <YAxis />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={darkMode ? "#4A5568" : "#E2E8F0"}
+                />
+                <XAxis
+                  dataKey="market"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
+                <YAxis stroke={darkMode ? "#CBD5E0" : "#4A5568"} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Line
@@ -353,12 +590,27 @@ const ProductVisualization = () => {
                 />
               </LineChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("lineChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
 
           {/* Area Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Area Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="areaChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Area Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <AreaChart data={filteredData}>
                 <defs>
                   <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
@@ -366,9 +618,15 @@ const ProductVisualization = () => {
                     <stop offset="95%" stopColor="#ff7300" stopOpacity={0.2} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="market" />
-                <YAxis />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke={darkMode ? "#4A5568" : "#E2E8F0"}
+                />
+                <XAxis
+                  dataKey="market"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
+                <YAxis stroke={darkMode ? "#CBD5E0" : "#4A5568"} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Area
@@ -380,12 +638,27 @@ const ProductVisualization = () => {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("areaChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
 
           {/* Pie Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Pie Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="pieChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Pie Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Tooltip />
                 <Legend />
@@ -395,7 +668,7 @@ const ProductVisualization = () => {
                   nameKey="market"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                  outerRadius={120}
                   fill="#8884d8"
                 >
                   {filteredData.map((entry, index) => (
@@ -424,16 +697,34 @@ const ProductVisualization = () => {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("pieChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
 
           {/* Radar Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Radar Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="radarChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Radar Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <RadarChart data={filteredData}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="market" />
-                <PolarRadiusAxis />
+                <PolarGrid stroke={darkMode ? "#4A5568" : "#E2E8F0"} />
+                <PolarAngleAxis
+                  dataKey="market"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
+                <PolarRadiusAxis stroke={darkMode ? "#CBD5E0" : "#4A5568"} />
                 <Tooltip />
                 <Legend />
                 <Radar
@@ -444,16 +735,39 @@ const ProductVisualization = () => {
                 />
               </RadarChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("radarChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
 
           {/* Scatter Chart */}
-          <div className="bg-white p-4 shadow-md rounded-lg">
-            <h3 className="text-lg font-semibold mb-2">Scatter Chart</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <div
+            id="scatterChart"
+            className={`p-6 rounded-lg shadow-md ${
+              darkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3 className="text-xl font-semibold mb-4">Scatter Chart</h3>
+            <ResponsiveContainer width="100%" height={400}>
               <ScatterChart>
-                <CartesianGrid />
-                <XAxis type="category" dataKey="market" />
-                <YAxis type="number" dataKey="price" />
+                <CartesianGrid stroke={darkMode ? "#4A5568" : "#E2E8F0"} />
+                <XAxis
+                  type="category"
+                  dataKey="market"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="price"
+                  stroke={darkMode ? "#CBD5E0" : "#4A5568"}
+                />
                 <Tooltip />
                 <Legend />
                 <Scatter name="Market Prices" data={filteredData}>
@@ -483,6 +797,16 @@ const ProductVisualization = () => {
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
+            <button
+              onClick={() => handleExportChart("scatterChart")}
+              className={`mt-4 w-full px-4 py-2 rounded-lg ${
+                darkMode
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-green-500 hover:bg-green-600"
+              } text-white transition`}
+            >
+              Export as Image
+            </button>
           </div>
         </div>
       )}
